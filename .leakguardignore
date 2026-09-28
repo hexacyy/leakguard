@@ -1,0 +1,14 @@
+# .leakguardignore
+# ============================================================
+# Paths and fnmatch patterns to skip during staged-file scans.
+# One pattern per line. Blank lines and lines starting with #
+# are ignored.
+#
+# Note: patterns here are bypassed when files are passed
+# explicitly on the CLI, e.g.:
+#   python leakguard.py demo/fake_config.py   <- still scanned
+# ============================================================
+
+# Skip the demo folder from automatic staged-file scans.
+# The demo folder contains deliberately fake secrets for testing.
+demo/
