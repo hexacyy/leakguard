@@ -128,7 +128,18 @@ In a real terminal the `X` markers are bold red, file paths are yellow, secret t
 
 ## How I Used IBM Bob
 
-<!-- I will fill this section in. -->
+Bob built the entire tool in one session — scanner, CLI, hook installer, demo, and README — but the more interesting moment was a design decision it raised before writing a single line of code.
+
+**The question:** should `.leakguardignore` be respected when files are passed as explicit CLI arguments?
+
+Bob presented two options:
+
+- **Option A** — Explicit file args bypass `.leakguardignore`. Running `python leakguard.py demo/fake_config.py` always scans the file, even if `demo/` is listed in the ignore file. The inline `# leakguard:ignore` marker still applies in all modes.
+- **Option B** — `.leakguardignore` is always respected. The README would explain how to temporarily comment out the `demo/` entry to run the demo scan.
+
+Option B is the "safer default" — consistent behaviour, no surprises. But Option A is the *right* UX: if you explicitly name a file on the command line, you clearly want it scanned. Suppressing it silently because of a broad ignore pattern would be confusing. Bob flagged this as a genuine design trade-off rather than just picking one, which was the right call.
+
+<!-- Add your own notes about the session here. -->
 
 ---
 
