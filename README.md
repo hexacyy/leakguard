@@ -128,18 +128,51 @@ In a real terminal the `X` markers are bold red, file paths are yellow, secret t
 
 ## How I Used IBM Bob
 
-Bob built the entire tool in one session — scanner, CLI, hook installer, demo, and README — but the more interesting moment was a design decision it raised before writing a single line of code.
+[IBM Bob](https://www.ibm.com/bob) is an AI software engineer. The entire LeakGuard project — from the first line of code to the final pushed commit — was developed in a single Bob session. Here is exactly how it was used at each stage.
 
-**The question:** should `.leakguardignore` be respected when files are passed as explicit CLI arguments?
+### 1. Planning before coding
 
-Bob presented two options:
+Rather than jumping straight to implementation, Bob produced a structured plan (`leakguard-plan.md`) that broke the work into five sub-tasks with clear intent, expected outcomes, and relevant context for each. This gave a reviewable blueprint before any file was created.
 
-- **Option A** — Explicit file args bypass `.leakguardignore`. Running `python leakguard.py demo/fake_config.py` always scans the file, even if `demo/` is listed in the ignore file. The inline `# leakguard:ignore` marker still applies in all modes.
-- **Option B** — `.leakguardignore` is always respected. The README would explain how to temporarily comment out the `demo/` entry to run the demo scan.
+### 2. Raising a design decision proactively
 
-Option B is the "safer default" — consistent behaviour, no surprises. But Option A is the *right* UX: if you explicitly name a file on the command line, you clearly want it scanned. Suppressing it silently because of a broad ignore pattern would be confusing. Bob flagged this as a genuine design trade-off rather than just picking one, which was the right call.
+Before writing any code, Bob identified an ambiguous design choice and asked for a decision:
 
-<!-- Add your own notes about the session here. -->
+> *Should `.leakguardignore` be respected when files are passed as explicit CLI arguments?*
+
+It presented two concrete options with trade-offs:
+
+- **Option A** — Explicit file args bypass `.leakguardignore` (chosen)
+- **Option B** — `.leakguardignore` always applies, with a README caveat
+
+This is the kind of call that usually causes silent bugs when an AI just picks one without asking. Bob flagged it as a genuine UX trade-off, the right answer was chosen (Option A), and it was implemented consistently throughout — in `scan_file()`, the `main()` loop, the `.leakguardignore` comments, and the README.
+
+### 3. Writing all the code
+
+Bob wrote `leakguard.py` (~420 lines, zero external dependencies) in one pass:
+- 9 regex pattern families with capturing groups for masked previews
+- Shannon entropy check scoped to specific extensions to reduce false positives
+- Sensitive filename detection, binary file skipping, `.git/` exclusion
+- ANSI colour output with TTY detection and ASCII fallback for Windows terminals
+- `--install` hook writer using `os.chmod` for executable permissions
+
+### 4. Debugging on the target platform
+
+The first run on Windows hit a `UnicodeEncodeError` — the `✖` and `✔` symbols can't be encoded in Windows cp1252. Bob diagnosed the error, added a UTF-8 terminal detection check, and fell back to plain `X` / `OK` automatically.
+
+### 5. Handling GitHub push protection
+
+When pushing the demo file, GitHub's push protection blocked the commit because the fake Slack and GitHub tokens matched GitHub's own secret scanner. Bob replaced those values with clearly-invalid `XXXX-DEMO-NOTAREAL-…` placeholders and verified that LeakGuard still flagged all 12 findings (since our regex only needs the prefix, not a realistic suffix).
+
+### 6. End-to-end testing
+
+Bob ran the full test suite in-session:
+- `python leakguard.py demo/fake_config.py` — confirmed 12 findings, suppressed line silent, exit code 1
+- `python leakguard.py --install` — confirmed hook written with correct absolute path
+- Staged a file with a fake AWS key, ran `git commit` — confirmed the hook fired and blocked the commit
+- Cleaned up, confirmed working tree clean
+
+No manual debugging or code fixes were needed outside of the two platform issues above (Unicode and push protection), both of which Bob caught and resolved itself.
 
 ---
 
